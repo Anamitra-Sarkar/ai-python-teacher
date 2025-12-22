@@ -108,8 +108,8 @@ def _sanitize_tutor_output(text: str) -> str:
 
 	def _replace_block(match: re.Match) -> str:
 		body = match.group(1) or ""
-		lines = [ln for ln in body.splitlines()]
-		if len(lines) > 8:
+		body_lines = body.splitlines()
+		if len(body_lines) > 8:
 			return (
 				"[Code omitted to keep this tutor-focused. "
 				"Ask for a hint about a specific line or error message, and I’ll guide you.]"
@@ -121,10 +121,10 @@ def _sanitize_tutor_output(text: str) -> str:
 	# Heuristic: if it looks like a full solution dump without fences, clamp length.
 	# (e.g., many lines starting with common Python structure)
 	suspicious_line_starts = ("import ", "from ", "def ", "class ", "if __name__")
-	suspicious = sum(1 for ln in text2.splitlines() if ln.lstrip().startswith(suspicious_line_starts))
+	lines = text2.splitlines()
+	suspicious = sum(1 for ln in lines if ln.lstrip().startswith(suspicious_line_starts))
 	if suspicious >= 12:
-		parts = text2.splitlines()
-		text2 = "\n".join(parts[:120]) + "\n\n[Output truncated to avoid full-solution code.]"
+		text2 = "\n".join(lines[:120]) + "\n\n[Output truncated to avoid full-solution code.]"
 
 	return text2
 
@@ -173,7 +173,7 @@ def _gemini_generate(prompt: str, request_id: str) -> Tuple[Optional[str], Optio
 					cand0 = (data.get("candidates") or [])[0]
 					content = (cand0.get("content") or {})
 					parts = content.get("parts") or []
-					text = "".join([p.get("text", "") for p in parts if isinstance(p, dict)])
+					text = "".join(p.get("text", "") for p in parts if isinstance(p, dict))
 					if not text:
 						last_err = {"message": "Empty response from Gemini.", "raw": data}
 						logger.error("gemini_empty request_id=%s dt_ms=%s", request_id, dt_ms)
