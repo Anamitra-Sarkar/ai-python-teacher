@@ -1,9 +1,6 @@
 import os
-from dotenv import load_dotenv
 
-# Load variables from .env file
-load_dotenv()
-
+# Note: load_dotenv() is called in app.py, so no need to duplicate here
 # Get Gemini API key safely
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
 
