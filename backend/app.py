@@ -108,8 +108,8 @@ def _sanitize_tutor_output(text: str) -> str:
 
 	def _replace_block(match: re.Match) -> str:
 		body = match.group(1) or ""
-		lines = body.splitlines()
-		if len(lines) > 8:
+		body_lines = body.splitlines()
+		if len(body_lines) > 8:
 			return (
 				"[Code omitted to keep this tutor-focused. "
 				"Ask for a hint about a specific line or error message, and I’ll guide you.]"
