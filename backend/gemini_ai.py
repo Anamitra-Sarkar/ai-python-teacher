@@ -5,6 +5,7 @@ This module handles all interactions with the Google Gemini API,
 including request building, error handling, and response parsing.
 """
 import re
+import threading
 import time
 from typing import Any, Dict, Optional, Tuple
 
@@ -22,16 +23,20 @@ from config import (
 # Pre-compiled regex for code block detection
 _CODEBLOCK_RE = re.compile(r"```(?:[\w+-]+)?\n(.*?)```", re.DOTALL)
 
-# HTTP session for connection pooling
-_http_session: Optional[requests.Session] = None
+# Constants for output sanitization
+MAX_CODE_BLOCK_LINES = 8  # Maximum lines in a code block before omitting
+SUSPICIOUS_LINE_THRESHOLD = 12  # Number of suspicious lines before truncation
+MAX_OUTPUT_LINES = 120  # Maximum lines to keep when truncating
+
+# Thread-local storage for HTTP sessions (thread-safe connection pooling)
+_thread_local = threading.local()
 
 
 def _get_http_session() -> requests.Session:
-    """Get or create a reusable HTTP session for connection pooling."""
-    global _http_session
-    if _http_session is None:
-        _http_session = requests.Session()
-    return _http_session
+    """Get or create a thread-local HTTP session for connection pooling."""
+    if not hasattr(_thread_local, 'session'):
+        _thread_local.session = requests.Session()
+    return _thread_local.session
 
 
 def build_tutor_prompt(topic: str, code: str, question: str, level: str) -> str:
@@ -99,7 +104,7 @@ def sanitize_tutor_output(text: str) -> str:
     def _replace_block(match: re.Match) -> str:
         body = match.group(1) or ""
         body_lines = body.splitlines()
-        if len(body_lines) > 8:
+        if len(body_lines) > MAX_CODE_BLOCK_LINES:
             return (
                 "[Code omitted to keep this tutor-focused. "
                 "Ask for a hint about a specific line or error message, and I'll guide you.]"
@@ -112,8 +117,8 @@ def sanitize_tutor_output(text: str) -> str:
     suspicious_line_starts = ("import ", "from ", "def ", "class ", "if __name__")
     lines = text2.splitlines()
     suspicious = sum(1 for ln in lines if ln.lstrip().startswith(suspicious_line_starts))
-    if suspicious >= 12:
-        text2 = "\n".join(lines[:120]) + "\n\n[Output truncated to avoid full-solution code.]"
+    if suspicious >= SUSPICIOUS_LINE_THRESHOLD:
+        text2 = "\n".join(lines[:MAX_OUTPUT_LINES]) + "\n\n[Output truncated to avoid full-solution code.]"
 
     return text2
 
