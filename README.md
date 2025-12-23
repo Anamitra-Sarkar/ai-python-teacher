@@ -120,4 +120,4 @@ Update the backend URL in `frontend/lib/main.dart` to point to your deployed Ver
 
 ## License
 
-MIT License
+- Apache 2.0 License
